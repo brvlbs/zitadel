@@ -198,7 +198,21 @@ export function LoginPasskey({ loginName, sessionId, requestId, altPassword, org
           <Button
             type="button"
             variant={ButtonVariants.Secondary}
-            onClick={() => {
+            onClick={(event) => {
+              // BraveLabs: require a genuine user activation before
+              // escaping to the password fallback. Any script-dispatched
+              // click (element.click(), dispatchEvent(new MouseEvent(...)),
+              // a password manager's "auto-fill and continue") is
+              // `isTrusted: false` per the DOM spec -- only real
+              // mouse/touch/keyboard input from the person is `true`. This
+              // is a UX guard only, never an authentication boundary:
+              // /password stays reachable by any means (including typing
+              // the URL), and password+TOTP remains a fully valid
+              // authentication method either way.
+              if (!event.nativeEvent.isTrusted) {
+                return;
+              }
+
               const params = new URLSearchParams();
 
               if (loginName) {
