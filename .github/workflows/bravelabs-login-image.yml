@@ -1,0 +1,98 @@
+name: BraveLabs -- Build and Publish zitadel-login
+
+# Deliberately separate from upstream's ci.yml/pack.yml: this workflow
+# builds and publishes ONLY the login app, to GHCR only (no Google
+# Artifact Registry -- upstream's pack.yml requires a GCR_JSON_KEY_BASE64
+# secret this fork does not have and has no reason to have), and only on
+# an explicit tag push or manual dispatch. No automatic upstream-sync,
+# no whole-monorepo lint/build/release pipeline -- this fork's entire
+# intentional delta is one commit on apps/login, and this workflow is
+# scoped to match that delta exactly. See the tag/commit history for
+# what "bravelabs" means here: a single, easily-rebased patch requiring
+# trusted user activation on the Login V2 passkey screen's password
+# fallback, so a password manager's auto-fill/auto-continue cannot
+# silently divert someone away from the passkey flow.
+
+on:
+  push:
+    tags:
+      - "v*-bravelabs.*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build (tag, branch, or SHA)"
+        required: true
+        default: "bravelabs/main"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/brvlbs/zitadel-login
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same build entrypoint upstream's own pack.yml uses for the login
+      # image (nx resolves the proto-codegen and @zitadel/client build
+      # steps as graph dependencies) -- deliberately not reinvented here.
+      - name: Build login standalone output
+        run: pnpm nx run --nxBail @zitadel/login:build
+
+      - name: Run login unit tests
+        run: pnpm --filter @zitadel/login test-unit
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          ref_name="${GITHUB_REF_NAME}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ref_name="manual-$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
+          fi
+          echo "tag=$ref_name" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the login image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/login
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/brvlbs/zitadel
+            org.opencontainers.image.version=${{ steps.tag.outputs.tag }}
+            org.opencontainers.image.vendor=BraveLabs
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.revision=${{ github.sha }}
