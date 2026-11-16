@@ -27,6 +27,10 @@ on:
 permissions:
   contents: read
   packages: write
+  # Build provenance (public repository: GitHub attestations are available). id-token is used only by the attest step to
+  # obtain the Sigstore signing certificate; no cloud provider trusts this repository's OIDC tokens.
+  id-token: write
+  attestations: write
 
 env:
   IMAGE_NAME: ghcr.io/brvlbs/zitadel-login
@@ -85,6 +89,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push the login image
+        id: push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: apps/login
@@ -97,3 +102,11 @@ jobs:
             org.opencontainers.image.vendor=BraveLabs
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.revision=${{ github.sha }}
+
+      # Verify with: gh attestation verify oci://ghcr.io/brvlbs/zitadel-login@<digest> --owner brvlbs
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
