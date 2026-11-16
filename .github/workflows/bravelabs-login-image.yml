@@ -33,6 +33,7 @@ env:
 
 jobs:
   build-and-publish:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
