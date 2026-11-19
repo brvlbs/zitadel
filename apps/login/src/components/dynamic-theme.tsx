@@ -1,8 +1,9 @@
 "use client";
 
 import { Logo } from "@/components/logo";
+import { Translated } from "@/components/translated";
+import { AppBrandingSettings } from "@/lib/app-branding";
 import { useResponsiveLayout } from "@/lib/theme-hooks";
-import { BrandingSettings } from "@zitadel/proto/zitadel/settings/v2/branding_settings_pb";
 import React, { Children, ReactNode } from "react";
 import { Card } from "./card";
 import { ThemeWrapper } from "./theme-wrapper";
@@ -24,7 +25,7 @@ export function DynamicTheme({
   children,
 }: {
   children: ReactNode | ((isSideBySide: boolean) => ReactNode);
-  branding?: BrandingSettings;
+  branding?: AppBrandingSettings;
 }) {
   const { isSideBySide } = useResponsiveLayout();
 
@@ -64,6 +65,7 @@ export function DynamicTheme({
                             width={150}
                           />
                         )}
+                        <AppCaption appName={branding?.appName} />
 
                         {/* First child content (title, description) - only if we have left/right structure */}
                         {hasLeftRightStructure && (
@@ -109,6 +111,7 @@ export function DynamicTheme({
                         />
                       )}
                     </div>
+                    <AppCaption appName={branding?.appName} />
 
                     {hasMultipleChildren ? (
                       <>
@@ -130,5 +133,15 @@ export function DynamicTheme({
             );
           })()}
     </ThemeWrapper>
+  );
+}
+
+// BraveLabs: names the application the sign-in is for (allowlisted, see lib/app-branding.ts).
+function AppCaption({ appName }: { appName?: string }) {
+  if (!appName) return null;
+  return (
+    <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-300" data-testid="app-caption">
+      <Translated i18nKey="signInTo" namespace="common" data={{ appName }} />
+    </p>
   );
 }

@@ -1,3 +1,4 @@
+import { APP_BRANDING_REQUEST_HEADER } from "@/lib/app-branding";
 import { buildCSP } from "@/lib/server/csp";
 import { applyCustomHeaders } from "@/lib/server/custom-headers";
 import { createLogger } from "@/lib/server/logger";
@@ -19,6 +20,15 @@ export async function proxy(request: NextRequest) {
   const organization = request.nextUrl.searchParams.get("organization");
   if (organization) {
     requestHeaders.set("x-zitadel-i18n-organization", organization);
+  }
+
+  // BraveLabs: hand the request id to server components for per-application
+  // presentation. Never trust an incoming copy; the id is only a lookup key
+  // and is resolved to a client id through ZITADEL (lib/app-branding.ts).
+  requestHeaders.delete(APP_BRANDING_REQUEST_HEADER);
+  const requestId = request.nextUrl.searchParams.get("requestId");
+  if (requestId) {
+    requestHeaders.set(APP_BRANDING_REQUEST_HEADER, requestId);
   }
 
   // Internal infrastructure routes — skip middleware entirely.
