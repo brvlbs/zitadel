@@ -1,7 +1,8 @@
 {
   "common": {
     "back": "Back",
-    "title": "Login with Zitadel"
+    "title": "Login with Zitadel",
+    "signInTo": "Sign in to {appName}"
   },
   "accounts": {
     "title": "Accounts",
