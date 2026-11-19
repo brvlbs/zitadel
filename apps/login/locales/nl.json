@@ -1,7 +1,8 @@
 {
   "common": {
     "back": "Terug",
-    "title": "Inloggen met Zitadel"
+    "title": "Inloggen met Zitadel",
+    "signInTo": "Inloggen bij {appName}"
   },
   "accounts": {
     "title": "Accounts",
