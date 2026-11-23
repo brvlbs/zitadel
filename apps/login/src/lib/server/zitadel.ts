@@ -37,7 +37,7 @@ import {
 import { getTranslations } from "next-intl/server";
 
 import { getUserAgent } from "@/lib/server/fingerprint";
-import { APP_BRANDING_REQUEST_HEADER, AppBrandingSettings, applyAppBranding, oidcAuthRequestId, parseAppBranding } from "@/lib/app-branding";
+import { APP_BRANDING_REQUEST_HEADER, AppBrandingSettings, oidcAuthRequestId, parseAppBranding, withAppContext } from "@/lib/app-branding";
 import { headers } from "next/headers";
 
 import { PromiseCache } from "@/lib/server/cache";
@@ -161,24 +161,31 @@ export async function getBrandingSettings({
   return withAppBranding(serviceConfig, settings);
 }
 
-// BraveLabs: allowlisted per-application presentation, see lib/app-branding.ts.
+// BraveLabs: which application a sign-in is for, see lib/app-branding.ts.
 const appBranding = parseAppBranding(process.env.BRAVELABS_APP_BRANDING);
 
 async function withAppBranding(
   serviceConfig: ServiceConfig,
   settings: BrandingSettings | undefined,
 ): Promise<AppBrandingSettings | undefined> {
-  if (!settings || appBranding.size === 0) return settings;
+  if (!settings) return settings;
+  let requestId: string | null;
   try {
-    const authRequestId = oidcAuthRequestId((await headers()).get(APP_BRANDING_REQUEST_HEADER));
-    if (!authRequestId) return settings;
+    requestId = (await headers()).get(APP_BRANDING_REQUEST_HEADER);
+  } catch {
+    return settings; // no request scope
+  }
+  if (!requestId) return settings; // not serving a sign-in: no application line
+  const authRequestId = oidcAuthRequestId(requestId);
+  if (!authRequestId || appBranding.size === 0) return withAppContext(settings, {});
+  try {
     // Resolved by the login's own service credentials, never from the browser.
     const { authRequest } = await getAuthRequest({ serviceConfig, authRequestId });
     const app = authRequest ? appBranding.get(authRequest.clientId) : undefined;
-    return app ? applyAppBranding(settings, app) : settings;
+    return withAppContext(settings, app ?? {});
   } catch {
-    // Finished, expired or unknown request, or no request scope: organisation branding.
-    return settings;
+    // Finished, expired or unknown request: generic message.
+    return withAppContext(settings, {});
   }
 }
 
