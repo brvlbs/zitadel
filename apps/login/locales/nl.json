@@ -2,7 +2,11 @@
   "common": {
     "back": "Terug",
     "title": "Inloggen met Zitadel",
-    "signInTo": "Inloggen bij {appName}"
+    "signInTo": "Inloggen bij {appName}",
+    "signInGeneric": "Inloggen met BraveLabs ID",
+    "bravelabsIdEyebrow": "BraveLabs ID",
+    "bravelabsIdHeadline": "Eén account voor elke BraveLabs-toepassing.",
+    "bravelabsIdBody": "Gebruik hetzelfde account en dezelfde passkey overal waar je met BraveLabs werkt."
   },
   "accounts": {
     "title": "Accounts",

@@ -1,74 +1,63 @@
-// BraveLabs: per-application login presentation.
+// BraveLabs: name the application a sign-in is for.
 //
-// One ZITADEL organisation serves every BraveLabs application, so the
-// organisation's branding settings cannot differ per application. This module
-// overlays a small, allowlisted presentation (name, accent colour, logo) on
-// top of those settings, selected by the OIDC client id of the auth request
-// the login is serving. The client id is read from ZITADEL by the login's own
-// service credentials (see getBrandingSettings in lib/server/zitadel.ts), never
-// from the browser, and only an exact allowlist match changes anything.
+// One shared BraveLabs ID login serves every BraveLabs application. The login
+// pages say which application the user is signing into ("Sign in to Lead Hub",
+// plus an optional short description), on every step of the flow.
+//
+// The application is selected only by the OIDC client id of the auth request,
+// which the login reads from ZITADEL with its own service credentials (see
+// getBrandingSettings in lib/server/zitadel.ts). ZITADEL's AuthRequest carries
+// no application name (only device requests do), hence a small allowlist.
+// Nothing from the URL is ever displayed.
 //
 // Config: BRAVELABS_APP_BRANDING, a runtime JSON object keyed by client id:
-//   {"<clientId>": {"name": "Lead Hub", "accent": "#e6007e",
-//                   "accentDark": "#ff4fa8", "logoUrl": "/assets/leadhub.svg"}}
-// Invalid entries are dropped; unknown clients keep the organisation branding.
+//   {"<clientId>": {"name": "Lead Hub", "description": "Leads and campaigns"}}
+// Invalid entries are dropped. A sign-in for an unknown client, or one that
+// cannot be resolved, shows the generic "Sign in with BraveLabs ID".
 
 import type { BrandingSettings } from "@zitadel/proto/zitadel/settings/v2/branding_settings_pb";
 
 export const APP_BRANDING_REQUEST_HEADER = "x-bravelabs-request-id";
 
-export type AppPresentation = {
-  name: string;
-  accent?: string;
-  accentDark?: string;
-  logoUrl?: string;
-  logoUrlDark?: string;
+export type AppContext = {
+  // Absent for an unknown application: the generic message is shown.
+  name?: string;
+  description?: string;
 };
 
-export type AppBrandingSettings = BrandingSettings & { appName?: string };
+// `bravelabsApp` is set only while serving a sign-in request (a requestId is
+// present); pages outside a sign-in (logout, device, direct visits) show nothing.
+export type AppBrandingSettings = BrandingSettings & { bravelabsApp?: AppContext };
 
-const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
+const MAX_NAME = 60;
+const MAX_DESCRIPTION = 160;
 
-// Root-relative only: the login's CSP allows images from its own origin and
-// the ZITADEL origin, and a root-relative path cannot point anywhere else.
-function isSafeLogoPath(value: unknown): value is string {
-  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\");
-}
-
-function parseEntry(value: unknown): AppPresentation | undefined {
+function parseEntry(value: unknown): AppContext | undefined {
   if (!value || typeof value !== "object") return undefined;
   const entry = value as Record<string, unknown>;
-  if (typeof entry.name !== "string" || !entry.name.trim() || entry.name.length > 60) return undefined;
-
-  const presentation: AppPresentation = { name: entry.name.trim() };
-  for (const key of ["accent", "accentDark"] as const) {
-    if (entry[key] === undefined) continue;
-    if (typeof entry[key] !== "string" || !HEX_COLOUR.test(entry[key] as string)) return undefined;
-    presentation[key] = entry[key] as string;
-  }
-  for (const key of ["logoUrl", "logoUrlDark"] as const) {
-    if (entry[key] === undefined) continue;
-    if (!isSafeLogoPath(entry[key])) return undefined;
-    presentation[key] = entry[key] as string;
-  }
-  return presentation;
+  const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  if (!name || name.length > MAX_NAME) return undefined;
+  if (entry.description === undefined) return { name };
+  const description = typeof entry.description === "string" ? entry.description.trim() : "";
+  if (!description || description.length > MAX_DESCRIPTION) return undefined;
+  return { name, description };
 }
 
-export function parseAppBranding(raw: string | undefined): Map<string, AppPresentation> {
-  const apps = new Map<string, AppPresentation>();
+export function parseAppBranding(raw: string | undefined): Map<string, AppContext> {
+  const apps = new Map<string, AppContext>();
   if (!raw) return apps;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    console.error("BRAVELABS_APP_BRANDING is not valid JSON; using organisation branding only");
+    console.error("BRAVELABS_APP_BRANDING is not valid JSON; showing the generic sign-in message");
     return apps;
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return apps;
   for (const [clientId, value] of Object.entries(parsed)) {
-    const presentation = parseEntry(value);
-    if (presentation) {
-      apps.set(clientId, presentation);
+    const app = parseEntry(value);
+    if (app) {
+      apps.set(clientId, app);
     } else {
       console.error(`BRAVELABS_APP_BRANDING entry for client ${clientId} is invalid and ignored`);
     }
@@ -76,29 +65,14 @@ export function parseAppBranding(raw: string | undefined): Map<string, AppPresen
   return apps;
 }
 
-// Only OIDC auth requests are resolved; SAML and device requests keep the
-// organisation branding (no BraveLabs application uses them).
+// Only OIDC auth requests are resolved; SAML and device requests get the
+// generic message (no BraveLabs application uses them).
 export function oidcAuthRequestId(requestId: string | null | undefined): string | undefined {
   if (!requestId?.startsWith("oidc_")) return undefined;
   const id = requestId.slice("oidc_".length);
   return id ? id : undefined;
 }
 
-export function applyAppBranding(branding: BrandingSettings, app: AppPresentation): AppBrandingSettings {
-  const darkAccent = app.accentDark ?? app.accent;
-  const darkLogo = app.logoUrlDark ?? app.logoUrl;
-  return {
-    ...branding,
-    appName: app.name,
-    lightTheme: branding.lightTheme && {
-      ...branding.lightTheme,
-      ...(app.accent ? { primaryColor: app.accent } : {}),
-      ...(app.logoUrl ? { logoUrl: app.logoUrl } : {}),
-    },
-    darkTheme: branding.darkTheme && {
-      ...branding.darkTheme,
-      ...(darkAccent ? { primaryColor: darkAccent } : {}),
-      ...(darkLogo ? { logoUrl: darkLogo } : {}),
-    },
-  };
+export function withAppContext(branding: BrandingSettings, app: AppContext): AppBrandingSettings {
+  return { ...branding, bravelabsApp: app };
 }

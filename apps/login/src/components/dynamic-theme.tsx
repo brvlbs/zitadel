@@ -1,7 +1,7 @@
 "use client";
 
+import { BraveLabsShell } from "@/components/bravelabs-shell";
 import { Logo } from "@/components/logo";
-import { Translated } from "@/components/translated";
 import { AppBrandingSettings } from "@/lib/app-branding";
 import { useResponsiveLayout } from "@/lib/theme-hooks";
 import React, { Children, ReactNode } from "react";
@@ -37,6 +37,15 @@ export function DynamicTheme({
     return children;
   }, [children, isSideBySide]);
 
+  // BraveLabs: one shared BraveLabs ID layout for every login page.
+  if (process.env.NEXT_PUBLIC_BRAVELABS_SHELL !== "false") {
+    return (
+      <ThemeWrapper branding={branding}>
+        <BraveLabsShell branding={branding}>{actualChildren}</BraveLabsShell>
+      </ThemeWrapper>
+    );
+  }
+
   return (
     <ThemeWrapper branding={branding}>
       {isSideBySide
@@ -65,7 +74,6 @@ export function DynamicTheme({
                             width={150}
                           />
                         )}
-                        <AppCaption appName={branding?.appName} />
 
                         {/* First child content (title, description) - only if we have left/right structure */}
                         {hasLeftRightStructure && (
@@ -111,7 +119,6 @@ export function DynamicTheme({
                         />
                       )}
                     </div>
-                    <AppCaption appName={branding?.appName} />
 
                     {hasMultipleChildren ? (
                       <>
@@ -133,15 +140,5 @@ export function DynamicTheme({
             );
           })()}
     </ThemeWrapper>
-  );
-}
-
-// BraveLabs: names the application the sign-in is for (allowlisted, see lib/app-branding.ts).
-function AppCaption({ appName }: { appName?: string }) {
-  if (!appName) return null;
-  return (
-    <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-300" data-testid="app-caption">
-      <Translated i18nKey="signInTo" namespace="common" data={{ appName }} />
-    </p>
   );
 }

@@ -59,6 +59,9 @@ jobs:
       # image (nx resolves the proto-codegen and @zitadel/client build
       # steps as graph dependencies) -- deliberately not reinvented here.
       - name: Build login standalone output
+        # BraveLabs ID look: sharp controls (NEXT_PUBLIC_* are inlined at build time).
+        env:
+          NEXT_PUBLIC_THEME_ROUNDNESS: edgy
         run: pnpm nx run --nxBail @zitadel/login:build
 
       - name: Run login unit tests
