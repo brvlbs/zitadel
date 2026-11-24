@@ -30,6 +30,15 @@ describe("LoginOTP", () => {
 
   afterEach(cleanup);
 
+  test("uses the six-box input only for TOTP", () => {
+    const { unmount } = render(<LoginOTP method="time-based" />);
+    expect(screen.getAllByTestId("code-box")).toHaveLength(6);
+    unmount();
+    render(<LoginOTP method="email" code="12345678" />);
+    expect(screen.queryAllByTestId("code-box")).toHaveLength(0);
+    expect(screen.getByTestId("code-text-input")).toHaveAttribute("autocomplete", "one-time-code");
+  });
+
   test("should autofocus the code input on mount", () => {
     const { getByTestId } = render(<LoginOTP method="time-based" />);
     expect(getByTestId("code-text-input")).toHaveFocus();

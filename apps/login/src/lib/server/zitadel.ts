@@ -11,6 +11,7 @@ import { OrganizationService } from "@zitadel/proto/zitadel/org/v2/org_service_p
 import { CreateResponseRequest, SAMLService } from "@zitadel/proto/zitadel/saml/v2/saml_service_pb";
 import { RequestChallenges } from "@zitadel/proto/zitadel/session/v2/challenge_pb";
 import { Checks, SessionService } from "@zitadel/proto/zitadel/session/v2/session_service_pb";
+import { BrandingSettings } from "@zitadel/proto/zitadel/settings/v2/branding_settings_pb";
 import { LoginSettings } from "@zitadel/proto/zitadel/settings/v2/login_settings_pb";
 import { SettingsService } from "@zitadel/proto/zitadel/settings/v2/settings_service_pb";
 import { SendEmailVerificationCodeSchema } from "@zitadel/proto/zitadel/user/v2/email_pb";
@@ -36,6 +37,8 @@ import {
 import { getTranslations } from "next-intl/server";
 
 import { getUserAgent } from "@/lib/server/fingerprint";
+import { APP_BRANDING_REQUEST_HEADER, AppBrandingSettings, oidcAuthRequestId, parseAppBranding, withAppContext } from "@/lib/app-branding";
+import { headers } from "next/headers";
 
 import { PromiseCache } from "@/lib/server/cache";
 import { applyCustomHeaders } from "@/lib/server/custom-headers";
@@ -150,11 +153,40 @@ export async function getBrandingSettings({
       .then((resp) => (resp.settings ? resp.settings : undefined));
   };
 
-  return freshCache(
+  const settings = await freshCache(
     instanceCacheKey(serviceConfig, `getBrandingSettings-${organization || "instance"}`),
     fetcher,
     getTTLForKey("getBrandingSettings", longCacheTTL),
   );
+  return withAppBranding(serviceConfig, settings);
+}
+
+// BraveLabs: which application a sign-in is for, see lib/app-branding.ts.
+const appBranding = parseAppBranding(process.env.BRAVELABS_APP_BRANDING);
+
+async function withAppBranding(
+  serviceConfig: ServiceConfig,
+  settings: BrandingSettings | undefined,
+): Promise<AppBrandingSettings | undefined> {
+  if (!settings) return settings;
+  let requestId: string | null;
+  try {
+    requestId = (await headers()).get(APP_BRANDING_REQUEST_HEADER);
+  } catch {
+    return settings; // no request scope
+  }
+  if (!requestId) return settings; // not serving a sign-in: no application line
+  const authRequestId = oidcAuthRequestId(requestId);
+  if (!authRequestId || appBranding.size === 0) return withAppContext(settings, {});
+  try {
+    // Resolved by the login's own service credentials, never from the browser.
+    const { authRequest } = await getAuthRequest({ serviceConfig, authRequestId });
+    const app = authRequest ? appBranding.get(authRequest.clientId) : undefined;
+    return withAppContext(settings, app ?? {});
+  } catch {
+    // Finished, expired or unknown request: generic message.
+    return withAppContext(settings, {});
+  }
 }
 
 /**

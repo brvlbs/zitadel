@@ -15,6 +15,7 @@ import { Alert, AlertType } from "./alert";
 import { AutoSubmitForm } from "./auto-submit-form";
 import { BackButton } from "./back-button";
 import { Button, ButtonVariants } from "./button";
+import { CodeBoxes, isCompleteCode } from "./code-boxes";
 import { TextInput } from "./input";
 import { Spinner } from "./spinner";
 import { Translated } from "./translated";
@@ -36,6 +37,7 @@ type Inputs = {
 
 export function LoginOTP({ loginName, sessionId, requestId, organization, method, code, loginSettings }: Props) {
   const t = useTranslations("otp");
+  const tCommon = useTranslations("common");
 
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -227,17 +229,32 @@ export function LoginOTP({ loginName, sessionId, requestId, organization, method
           </Alert>
         )}
         <div className="mt-4">
-          <TextInput
-            type="text"
-            autoFocus
-            {...register("code", { required: t("verify.required.code") })}
-            label={t("verify.labels.code")}
-            autoComplete="one-time-code"
-            data-testid="code-text-input"
-          />
+          {method === "time-based" ? (
+            // BraveLabs: six boxes for the fixed six-digit TOTP code.
+            <CodeBoxes
+              autoFocus
+              {...register("code", {
+                required: t("verify.required.code"),
+                validate: (value) => isCompleteCode(value) || t("verify.required.code"),
+              })}
+              label={t("verify.labels.code")}
+              hint={tCommon("codeBoxesHint")}
+              error={error || undefined}
+              data-testid="code-text-input"
+            />
+          ) : (
+            <TextInput
+              type="text"
+              autoFocus
+              {...register("code", { required: t("verify.required.code") })}
+              label={t("verify.labels.code")}
+              autoComplete="one-time-code"
+              data-testid="code-text-input"
+            />
+          )}
         </div>
 
-        {error && (
+        {error && method !== "time-based" && (
           <div className="py-4" data-testid="error">
             <Alert>{error}</Alert>
           </div>

@@ -10,11 +10,10 @@ import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Alert } from "./alert";
 import { AutoSubmitForm } from "./auto-submit-form";
 import { Button, ButtonVariants } from "./button";
 import { CopyToClipboard } from "./copy-to-clipboard";
-import { TextInput } from "./input";
+import { CodeBoxes, isCompleteCode } from "./code-boxes";
 import { Spinner } from "./spinner";
 import { Translated } from "./translated";
 
@@ -91,8 +90,10 @@ export function TotpRegister({ uri, loginName, sessionId, requestId, organizatio
           }
         }
       })
-      .catch((e) => {
-        setError(e.message);
+      .catch(() => {
+        // BraveLabs: production server-action errors are masked ("Minified React
+        // error"); show the translated message the login step already uses.
+        setError(t("errors.couldNotVerifyCode"));
         return;
       })
       .finally(() => {
@@ -115,20 +116,18 @@ export function TotpRegister({ uri, loginName, sessionId, requestId, organizatio
           </div>
           <form className="w-full">
             <div className="">
-              <TextInput
-                type="text"
+              {/* BraveLabs: six boxes for the fixed six-digit TOTP code. */}
+              <CodeBoxes
                 autoFocus
-                {...register("code", { required: t("set.required.code") })}
+                {...register("code", {
+                  required: t("set.required.code"),
+                  validate: (value) => isCompleteCode(value) || t("set.required.code"),
+                })}
                 label={t("set.labels.code")}
+                error={error || undefined}
                 data-testid="code-text-input"
               />
             </div>
-
-            {error && (
-              <div className="py-4">
-                <Alert>{error}</Alert>
-              </div>
-            )}
 
             <div className="mt-8 flex w-full flex-row items-center">
               <span className="flex-grow"></span>
