@@ -17,9 +17,12 @@ import { Alert } from "./alert";
 // undefined: no notice; null: limited, wait unknown; number: seconds to wait.
 type Limited = number | null | undefined;
 
+// Whole seconds 1..3600 only; an HTTP-date or anything odd falls back to the generic text.
 export function retryAfterSeconds(header: string | null): number | null {
-  const seconds = Number(header);
-  return header && Number.isInteger(seconds) && seconds > 0 ? seconds : null;
+  const value = header?.trim() ?? "";
+  if (!/^\d{1,4}$/.test(value)) return null;
+  const seconds = Number(value);
+  return seconds > 0 && seconds <= 3600 ? seconds : null;
 }
 
 export function RateLimitNotice() {
