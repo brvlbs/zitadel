@@ -1,8 +1,9 @@
 "use client";
 
+import { BraveLabsShell } from "@/components/bravelabs-shell";
 import { Logo } from "@/components/logo";
+import { AppBrandingSettings } from "@/lib/app-branding";
 import { useResponsiveLayout } from "@/lib/theme-hooks";
-import { BrandingSettings } from "@zitadel/proto/zitadel/settings/v2/branding_settings_pb";
 import React, { Children, ReactNode } from "react";
 import { Card } from "./card";
 import { ThemeWrapper } from "./theme-wrapper";
@@ -24,7 +25,7 @@ export function DynamicTheme({
   children,
 }: {
   children: ReactNode | ((isSideBySide: boolean) => ReactNode);
-  branding?: BrandingSettings;
+  branding?: AppBrandingSettings;
 }) {
   const { isSideBySide } = useResponsiveLayout();
 
@@ -35,6 +36,15 @@ export function DynamicTheme({
     }
     return children;
   }, [children, isSideBySide]);
+
+  // BraveLabs: one shared BraveLabs ID layout for every login page.
+  if (process.env.NEXT_PUBLIC_BRAVELABS_SHELL !== "false") {
+    return (
+      <ThemeWrapper branding={branding}>
+        <BraveLabsShell branding={branding}>{actualChildren}</BraveLabsShell>
+      </ThemeWrapper>
+    );
+  }
 
   return (
     <ThemeWrapper branding={branding}>
