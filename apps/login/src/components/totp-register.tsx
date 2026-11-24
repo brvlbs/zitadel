@@ -90,8 +90,10 @@ export function TotpRegister({ uri, loginName, sessionId, requestId, organizatio
           }
         }
       })
-      .catch((e) => {
-        setError(e.message);
+      .catch(() => {
+        // BraveLabs: production server-action errors are masked ("Minified React
+        // error"); show the translated message the login step already uses.
+        setError(t("errors.couldNotVerifyCode"));
         return;
       })
       .finally(() => {
