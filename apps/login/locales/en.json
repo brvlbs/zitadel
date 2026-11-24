@@ -4,6 +4,7 @@
     "title": "Login with Zitadel",
     "signInTo": "Sign in to {appName}",
     "signInGeneric": "Sign in with BraveLabs ID",
+    "codeBoxesHint": "Enter the 6-digit code from your authenticator app.",
     "bravelabsIdEyebrow": "BraveLabs ID",
     "bravelabsIdHeadline": "One account for every BraveLabs application.",
     "bravelabsIdBody": "Use the same account and passkey wherever you work with BraveLabs."
