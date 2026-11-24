@@ -7,7 +7,9 @@
     "codeBoxesHint": "Enter the 6-digit code from your authenticator app.",
     "bravelabsIdEyebrow": "BraveLabs ID",
     "bravelabsIdHeadline": "One account for every BraveLabs application.",
-    "bravelabsIdBody": "Use the same account and passkey wherever you work with BraveLabs."
+    "bravelabsIdBody": "Use the same account and passkey wherever you work with BraveLabs.",
+    "rateLimited": "Too many sign-in attempts from your network. Please wait a moment and try again.",
+    "rateLimitedSeconds": "Too many sign-in attempts from your network. Please wait {seconds} seconds and try again."
   },
   "accounts": {
     "title": "Accounts",
