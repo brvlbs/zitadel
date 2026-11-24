@@ -25,8 +25,8 @@ export function BraveLabsShell({ branding, children }: { branding?: AppBrandingS
   const formContent = childArray.length > 1 ? childArray.slice(1) : childArray;
 
   return (
-    <div className="relative mx-auto w-full max-w-[1100px] px-4 py-4 md:px-8">
-      <div className="grid overflow-hidden border border-[#D9D9D9] bg-white dark:border-white/10 dark:bg-[#0A1E30] lg:min-h-[600px] lg:grid-cols-[minmax(420px,0.84fr)_minmax(480px,1.16fr)]">
+    <div className="relative mx-auto w-full max-w-[1100px] px-4 py-4 md:px-8 [&_:focus-visible]:!outline [&_:focus-visible]:!outline-2 [&_:focus-visible]:!outline-offset-2 [&_:focus-visible]:!outline-[#E32686]">
+      <div className="grid overflow-hidden bg-white lg:border lg:border-[#D9D9D9] dark:lg:border-white/10 dark:bg-[#0A1E30] lg:min-h-[600px] lg:grid-cols-[minmax(420px,0.84fr)_minmax(480px,1.16fr)]">
         <section className="flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16 lg:py-14">
           <div className="mx-auto w-full max-w-[440px]">
             <div className="mb-10">
