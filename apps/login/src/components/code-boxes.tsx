@@ -45,14 +45,14 @@ export const CodeBoxes = forwardRef<HTMLInputElement, Props>(
         <label htmlFor={id} className="text-sm font-semibold text-[#001222] dark:text-white">
           {label}
         </label>
-        <div className="relative w-fit">
+        <div className="relative w-full max-w-[360px]">
           <div aria-hidden="true" className="flex gap-2">
             {Array.from({ length: CODE_LENGTH }, (_, i) => (
               <span
                 key={i}
                 data-testid="code-box"
                 className={[
-                  "flex h-12 w-12 items-center justify-center border bg-white text-2xl font-semibold text-[#001222] tabular-nums sm:h-14 sm:w-[52px] dark:bg-transparent dark:text-white",
+                  "flex aspect-square max-h-14 min-w-0 flex-1 items-center justify-center border bg-white text-2xl font-semibold text-[#001222] tabular-nums dark:bg-transparent dark:text-white",
                   error
                     ? "border-2 border-[#B42318]"
                     : focused && i === active
