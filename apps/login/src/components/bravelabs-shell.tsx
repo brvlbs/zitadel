@@ -14,6 +14,7 @@
 
 import { AppBrandingSettings, AppContext } from "@/lib/app-branding";
 import { Children, ReactNode } from "react";
+import { RateLimitNotice } from "./rate-limit-notice";
 import { Translated } from "./translated";
 
 const INK = "#001222";
@@ -41,6 +42,7 @@ export function BraveLabsShell({ branding, children }: { branding?: AppBrandingS
               </div>
             )}
 
+            <RateLimitNotice />
             <div className="w-full">{formContent}</div>
           </div>
         </section>

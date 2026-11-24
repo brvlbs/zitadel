@@ -7,7 +7,9 @@
     "codeBoxesHint": "Voer de 6-cijferige code uit je authenticator-app in.",
     "bravelabsIdEyebrow": "BraveLabs ID",
     "bravelabsIdHeadline": "Eén account voor elke BraveLabs-toepassing.",
-    "bravelabsIdBody": "Gebruik hetzelfde account en dezelfde passkey overal waar je met BraveLabs werkt."
+    "bravelabsIdBody": "Gebruik hetzelfde account en dezelfde passkey overal waar je met BraveLabs werkt.",
+    "rateLimited": "Te veel inlogpogingen vanaf je netwerk. Wacht even en probeer het opnieuw.",
+    "rateLimitedSeconds": "Te veel inlogpogingen vanaf je netwerk. Wacht {seconds} seconden en probeer het opnieuw."
   },
   "accounts": {
     "title": "Accounts",
