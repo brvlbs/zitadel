@@ -81,7 +81,7 @@ export const CodeBoxes = forwardRef<HTMLInputElement, Props>(
             suppressHydrationWarning
             // Covers the boxes so a click or tap anywhere focuses it; text and
             // caret are invisible, the boxes show the digits.
-            className="absolute inset-0 h-full w-full cursor-text border-0 bg-transparent text-transparent caret-transparent outline-none selection:bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E32686]"
+            className="absolute inset-0 h-full w-full cursor-text border-0 bg-transparent text-transparent caret-transparent outline-none selection:bg-transparent focus-visible:[outline:2px_solid_#E32686] focus-visible:[outline-offset:4px]"
             onChange={(event) => {
               const next = normalizeCode(event.target.value);
               if (event.target.value !== next) event.target.value = next;
