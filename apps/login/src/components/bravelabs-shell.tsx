@@ -36,7 +36,7 @@ export function BraveLabsShell({ branding, children }: { branding?: AppBrandingS
             </div>
 
             {titleContent && (
-              <div className="mb-7 flex flex-col items-start space-y-2 text-left [&_h1]:text-3xl [&_h1]:leading-tight [&_h1]:font-semibold [&_h1]:tracking-[-0.025em] [&_h1]:text-[#001222] dark:[&_h1]:text-white [&_p]:text-[#535252] dark:[&_p]:text-gray-300">
+              <div className="mb-7 flex flex-col items-start space-y-2 text-left [&_h1]:text-left [&_h1]:text-3xl [&_h1]:leading-tight [&_h1]:font-semibold [&_h1]:tracking-[-0.025em] [&_h1]:text-[#001222] dark:[&_h1]:text-white [&_p]:text-[#535252] dark:[&_p]:text-gray-300">
                 {titleContent}
               </div>
             )}
