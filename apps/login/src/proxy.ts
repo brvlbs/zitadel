@@ -1,4 +1,10 @@
-import { APP_BRANDING_REQUEST_HEADER } from "@/lib/app-branding";
+import {
+  APP_BRANDING_REQUEST_HEADER,
+  configuredApps,
+  INVITE_APP_COOKIE,
+  INVITE_APP_MAX_AGE,
+  inviteAppCookieValue,
+} from "@/lib/app-branding";
 import { buildCSP } from "@/lib/server/csp";
 import { applyCustomHeaders } from "@/lib/server/custom-headers";
 import { createLogger } from "@/lib/server/logger";
@@ -74,10 +80,12 @@ export async function proxy(request: NextRequest) {
   const isMatched = proxyPaths.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
 
   if (!isMatched) {
-    return NextResponse.next({
+    const response = NextResponse.next({
       request: { headers: requestHeaders },
       headers: responseHeaders,
     });
+    setInviteAppCookie(request, response);
+    return response;
   }
 
   // Proxy-specific headers
@@ -105,4 +113,25 @@ export async function proxy(request: NextRequest) {
     },
     headers: responseHeaders,
   });
+}
+
+// BraveLabs: remember which application an invitation is for, across the whole
+// setup flow (verify, authenticator, password/passkey, MFA, signed-in), without
+// threading a parameter through every step. Only a configured client id is ever
+// stored; see lib/app-branding.ts.
+export function setInviteAppCookie(request: NextRequest, response: NextResponse) {
+  const value = inviteAppCookieValue(request.nextUrl.pathname, request.nextUrl.searchParams, configuredApps());
+  if (value === undefined) return;
+  const options = {
+    path: process.env.NEXT_PUBLIC_BASE_PATH || "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax" as const,
+  };
+  if (value !== null) {
+    response.cookies.set(INVITE_APP_COOKIE, value, { ...options, maxAge: INVITE_APP_MAX_AGE });
+  } else if (request.cookies.has(INVITE_APP_COOKIE)) {
+    // A new invitation without (a known) app: drop the previous one.
+    response.cookies.set(INVITE_APP_COOKIE, "", { ...options, maxAge: 0 });
+  }
 }

@@ -402,6 +402,7 @@
     "title": "Welkom {user}!",
     "description": "U bent aangemeld.",
     "continue": "Verder",
+    "continueToApp": "Verder naar {appName}",
     "error": {
       "title": "Fout",
       "description": "Er is een fout opgetreden tijdens het aanmelden."

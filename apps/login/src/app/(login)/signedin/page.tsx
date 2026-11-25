@@ -3,13 +3,14 @@ import { Button, ButtonVariants } from "@/components/button";
 import { DynamicTheme } from "@/components/dynamic-theme";
 import { Translated } from "@/components/translated";
 import { UserAvatar } from "@/components/user-avatar";
+import { configuredApps, INVITE_APP_COOKIE, invitedApp } from "@/lib/app-branding";
 import { resolveRedirectUri } from "@/lib/server/next-url";
 import { getServiceConfig } from "@/lib/server/service-url";
 import { loadMostRecentSession, loadSessionById } from "@/lib/server/session";
 import { getBrandingSettings, getLoginSettings } from "@/lib/server/zitadel";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -43,6 +44,14 @@ export default async function Page(props: { searchParams: Promise<any> }) {
 
   const isSamePage = redirectUri?.startsWith("/signedin") ?? false;
 
+  // BraveLabs: after an invitation setup (no auth request) upstream would leave
+  // the user here; offer the invited application instead. Upstream's own
+  // redirect, when configured, wins. See lib/app-branding.ts.
+  const inviteApp =
+    !requestId && (!redirectUri || isSamePage)
+      ? invitedApp((await cookies()).get(INVITE_APP_COOKIE)?.value, configuredApps())
+      : undefined;
+
   return (
     <DynamicTheme branding={branding}>
       <div className="flex flex-col space-y-4">
@@ -75,6 +84,18 @@ export default async function Page(props: { searchParams: Promise<any> }) {
             <Link href={redirectUri}>
               <Button type="submit" className="self-end" variant={ButtonVariants.Primary}>
                 <Translated i18nKey="continue" namespace="signedin" />
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {inviteApp && (
+          <div className="mt-8 flex w-full flex-row items-center">
+            <span className="flex-grow"></span>
+
+            <Link href={inviteApp.url}>
+              <Button type="submit" className="self-end" variant={ButtonVariants.Primary}>
+                <Translated i18nKey="continueToApp" namespace="signedin" data={{ appName: inviteApp.name }} />
               </Button>
             </Link>
           </div>

@@ -1,5 +1,8 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import Page from "./page";
+
+const inviteCookie = vi.hoisted(() => ({ value: undefined as string | undefined }));
 
 vi.mock("@/lib/server/zitadel", () => ({
   getBrandingSettings: vi.fn(),
@@ -31,11 +34,34 @@ vi.mock("next-intl/server", () => ({
 }));
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, data?: Record<string, string>) => (data?.appName ? `${key}:${data.appName}` : key),
 }));
 
 vi.mock("next/headers", () => ({
   headers: vi.fn(() => new Headers()),
+  cookies: vi.fn(async () => ({
+    get: (name: string) =>
+      name === "bravelabs_invite_app" && inviteCookie.value ? { name, value: inviteCookie.value } : undefined,
+  })),
+}));
+
+vi.mock("@/lib/app-branding", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/app-branding")>();
+  const apps = original.parseAppBranding(
+    JSON.stringify({
+      "123@leadhub": { name: "Lead Hub", url: "https://leadhub.example.com/" },
+      nourl: { name: "No URL" },
+    }),
+  );
+  return { ...original, configuredApps: () => apps };
+});
+
+vi.mock("@/components/dynamic-theme", () => ({
+  DynamicTheme: ({ children }: { children: any }) => <>{children}</>,
+}));
+
+vi.mock("@/components/user-avatar", () => ({
+  UserAvatar: () => null,
 }));
 
 const session = {
@@ -82,5 +108,56 @@ describe("signedin page", () => {
     expect(result).toBeTruthy();
     expect(authorizeOrDenyDeviceAuthorization).not.toHaveBeenCalled();
     expect(completeDeviceAuthorization).not.toHaveBeenCalled();
+  });
+
+  describe("BraveLabs: continue to the invited application", () => {
+    afterEach(() => {
+      cleanup();
+      inviteCookie.value = undefined;
+    });
+
+    const continueToApp = () => screen.queryByText("continueToApp:Lead Hub");
+
+    test("links to the configured url of the invited application", async () => {
+      inviteCookie.value = "123@leadhub";
+      render(await Page({ searchParams: Promise.resolve({ loginName: "user@example.com" }) }));
+      expect(continueToApp()).toBeTruthy();
+      expect(continueToApp()!.closest("a")!.getAttribute("href")).toBe("https://leadhub.example.com/");
+      expect(screen.queryByText("continue")).toBeNull();
+      expect(screen.getAllByRole("link")).toHaveLength(1);
+    });
+
+    test("shows nothing without an invitation app", async () => {
+      render(await Page({ searchParams: Promise.resolve({ loginName: "user@example.com" }) }));
+      expect(screen.queryByRole("link")).toBeNull();
+    });
+
+    test("shows nothing for an unknown app or one without a url", async () => {
+      for (const value of ["unknown", "nourl", "https://evil.example/"]) {
+        inviteCookie.value = value;
+        render(await Page({ searchParams: Promise.resolve({ loginName: "user@example.com" }) }));
+        expect(screen.queryByRole("link")).toBeNull();
+        cleanup();
+      }
+    });
+
+    test("an auth request wins: no app button while a requestId is present", async () => {
+      inviteCookie.value = "123@leadhub";
+      render(
+        await Page({
+          searchParams: Promise.resolve({ requestId: "oidc_123", sessionId: "session-1", organization: "org-1" }),
+        }),
+      );
+      expect(continueToApp()).toBeNull();
+    });
+
+    test("upstream's default redirect wins over the app button", async () => {
+      const client = await import("@/lib/server/next-url");
+      vi.mocked(client.resolveRedirectUri).mockResolvedValue("https://default.example/home");
+      inviteCookie.value = "123@leadhub";
+      render(await Page({ searchParams: Promise.resolve({ loginName: "user@example.com" }) }));
+      expect(continueToApp()).toBeNull();
+      expect(screen.getByText("continue").closest("a")!.getAttribute("href")).toBe("https://default.example/home");
+    });
   });
 });
