@@ -400,6 +400,7 @@
     "title": "Welcome {user}!",
     "description": "You are signed in.",
     "continue": "Continue",
+    "continueToApp": "Continue to {appName}",
     "error": {
       "title": "Error",
       "description": "An error occurred while trying to sign in."

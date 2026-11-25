@@ -36,8 +36,14 @@ import {
 } from "@zitadel/proto/zitadel/user/v2/user_service_pb";
 import { getTranslations } from "next-intl/server";
 
+import {
+  APP_BRANDING_REQUEST_HEADER,
+  AppBrandingSettings,
+  configuredApps,
+  oidcAuthRequestId,
+  withAppContext,
+} from "@/lib/app-branding";
 import { getUserAgent } from "@/lib/server/fingerprint";
-import { APP_BRANDING_REQUEST_HEADER, AppBrandingSettings, oidcAuthRequestId, parseAppBranding, withAppContext } from "@/lib/app-branding";
 import { headers } from "next/headers";
 
 import { PromiseCache } from "@/lib/server/cache";
@@ -162,7 +168,7 @@ export async function getBrandingSettings({
 }
 
 // BraveLabs: which application a sign-in is for, see lib/app-branding.ts.
-const appBranding = parseAppBranding(process.env.BRAVELABS_APP_BRANDING);
+const appBranding = configuredApps();
 
 async function withAppBranding(
   serviceConfig: ServiceConfig,
